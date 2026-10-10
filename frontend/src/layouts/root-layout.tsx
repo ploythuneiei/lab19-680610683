@@ -61,7 +61,7 @@ export default function RootLayout() {
         <footer className="border-t p-4 text-center text-xs text-muted-foreground">
           ระบบลงทะเบียนเรียน{" "}
           {role === "ADMIN"
-            ? "ฝั่งผู้ดูแลระบบ"
+            ? "ฝั่งผู้ดูแลระบบ จัดทำโดย ธัลวรัตน์ ศรีจันทร์ดร 680610683"
             : "ฝั่งนักศึกษา จัดทำโดย ธัลวรัตน์ ศรีจันทร์ดร 680610683"}
         </footer>
       </SidebarInset>
