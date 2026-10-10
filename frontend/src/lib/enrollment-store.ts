@@ -56,6 +56,14 @@ type EnrollmentStore = {
   /** POST /enrollments — throw ApiError ถ้า Backend ไม่รับ */
   enroll: (studentId: string, courseId: string) => Promise<void>;
   // TODO การบ้าน 2.3: action เปลี่ยนวิชา (PUT /enrollments) และยกเลิก (DELETE /enrollments)
+  /** PUT /enrollments — เปลี่ยนวิชา (courseId เดิม -> newCourseId) */
+  updateEnrollment: (
+    studentId: string,
+    courseId: string,
+    newCourseId: string,
+  ) => Promise<void>;
+  /** DELETE /enrollments — ยกเลิกการลงทะเบียน */
+  dropEnrollment: (studentId: string, courseId: string) => Promise<void>;
 };
 
 export const useEnrollmentStore = create<EnrollmentStore>()((set) => ({
@@ -180,6 +188,32 @@ export const useEnrollmentStore = create<EnrollmentStore>()((set) => ({
     });
     set((state) => ({
       enrollments: [...state.enrollments, fromApiEnrollment(created)],
+    }));
+  },
+
+  updateEnrollment: async (studentId, courseId, newCourseId) => {
+    const updated = await api<ApiEnrollment>("/enrollments", {
+      method: "PUT",
+      body: { studentId, courseId, newCourseId },
+    });
+    set((state) => ({
+      enrollments: state.enrollments.map((e) =>
+        e.studentId === studentId && e.courseId === courseId
+          ? fromApiEnrollment(updated)
+          : e,
+      ),
+    }));
+  },
+
+  dropEnrollment: async (studentId, courseId) => {
+    await api<ApiEnrollment>("/enrollments", {
+      method: "DELETE",
+      body: { studentId, courseId },
+    });
+    set((state) => ({
+      enrollments: state.enrollments.filter(
+        (e) => !(e.studentId === studentId && e.courseId === courseId),
+      ),
     }));
   },
 }));
