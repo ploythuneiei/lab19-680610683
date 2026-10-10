@@ -191,7 +191,7 @@ router.put(
 
       return res.status(200).json({
         success: true,
-        message: `Student ${studentId} has been updated successfully`,
+        message: `Student ${studentId} has changed ${courseId} to ${newCourseId} successfully`,
         data: updated,
       });
 

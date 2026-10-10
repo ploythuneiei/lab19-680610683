@@ -263,7 +263,7 @@ router.put(
   });
 
 // DELETE /api/v3/students, body = {studentId}
-// delete a course (ADMIN only)
+// delete a student (ADMIN only)
 router.delete(
   "/",
   authenticateToken,
@@ -271,7 +271,7 @@ router.delete(
   async (req: CustomRequest, res: Response) => {
     try {
       // validate studentId
-      const result = zStudentId.safeParse(req.body?.StudentId);
+      const result = zStudentId.safeParse(req.body?.studentId);
       if (!result.success) {
         return res.status(400).json({
           success: false,
