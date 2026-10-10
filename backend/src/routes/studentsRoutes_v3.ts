@@ -194,7 +194,6 @@ router.put(
       const body = (await req.body) as Student;
       // get user, token from CustomRequest (token payload)
       const user = req.user;
-      const token = req.token;
 
       // validate req.body with predefined validator
       const result = zStudentPutBody.safeParse(body); // check zod
