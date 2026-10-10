@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from "express";
-import { zStudentPostBody, zStudentId } from "../libs/zodValidators.js";
+import { zStudentPostBody, zStudentId, zStudentPutBody } from "../libs/zodValidators.js";
 
 import type { Student, CustomRequest } from "../libs/types.js";
 
@@ -182,5 +182,135 @@ router.post(
     }
   },
 );
+
+//PUT /api/v3/students, body = { studentId, firstName?, lastName?, program?, interests?, emails? }
+router.put(
+  "/",
+  authenticateToken,
+  checkRoles,
+  async (req: CustomRequest, res: Response) => {
+    try {
+      // get student info from req.body
+      const body = (await req.body) as Student;
+      // get user, token from CustomRequest (token payload)
+      const user = req.user;
+      const token = req.token;
+
+      // validate req.body with predefined validator
+      const result = zStudentPutBody.safeParse(body); // check zod
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          errors: result.error.issues[0]?.message,
+        });
+      }
+
+      const { studentId, firstName, lastName, program, interests, emails } =
+        result.data;
+
+      let found_student = null;
+      if (studentId) {
+        // get student from DB by studentId
+        found_student = await prisma.student.findUnique({
+          where: { studentId: studentId },
+        });
+      }
+
+      // if student is not found
+      if (!found_student) {
+        return res.status(404).json({
+          success: false,
+          message: "Student does not exists",
+        });
+      }
+
+      // if STUDENT does not own the data
+      if (
+        user?.role === "STUDENT" &&
+        found_student.studentId !== user.studentId
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Forbidden access",
+        });
+      }
+
+      // update only fields that were sent (skip null/undefined)
+      const updated = await prisma.student.update({
+        where: { studentId },
+        data: {
+          ...(firstName != null && { firstName }),
+          ...(lastName != null && { lastName }),
+          ...(program != null && { program }),
+          ...(interests != null && { interests }),
+          ...(emails != null && { emails }),
+        },
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: `Student ${studentId} has been updated successfully`,
+        data: updated,
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Something is wrong, please try again",
+        error: err,
+      });
+    }
+  });
+
+// DELETE /api/v3/students, body = {studentId}
+// delete a course (ADMIN only)
+router.delete(
+  "/",
+  authenticateToken,
+  checkRoleAdmin,
+  async (req: CustomRequest, res: Response) => {
+    try {
+      // validate studentId
+      const result = zStudentId.safeParse(req.body?.StudentId);
+      if (!result.success) {
+        return res.status(400).json({
+          success: false,
+          message: "Validation failed",
+          errors: result.error.issues[0]?.message,
+        });
+      }
+      const studentId = result.data;
+
+      // check if the student exists
+      const student = await prisma.student.findUnique({ where: { studentId } });
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: `Student ${studentId} does not exists`,
+        });
+      }
+
+      // remove related enrollments first (they reference studentId),
+      // then remove the student itself
+      const [, deleted] = await prisma.$transaction([
+        prisma.enrollment.deleteMany({ where: { studentId } }),
+        prisma.student.delete({ where: { studentId } }),
+      ]);
+
+      return res.status(200).json({
+        success: true,
+        message: `Student ${studentId} has been deleted successfully`,
+        data: deleted,
+      });
+
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Something is wrong, please try again",
+        error: err,
+      });
+    }
+  });
 
 export default router;
